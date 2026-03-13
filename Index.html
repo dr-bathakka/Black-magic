@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Ritual</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel+Decorative:wght@400;700;900&family=Creepster&display=swap');
+:root{--blood:#8b0000;--fire:#ff4500;--ember:#ff8c00;--bone:#d4c5a9;--void:#03000a;--rune:#cc00ff}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--void);overflow-x:hidden;font-family:'Cinzel Decorative',serif;color:var(--bone);cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ctext y='28' font-size='26'%3E🩸%3C/text%3E%3C/svg%3E") 16 16,crosshair;min-height:100vh}
+
+#bg-canvas,#smoke-canvas,#particle-canvas,#raven-canvas{position:fixed;inset:0}
+#bg-canvas{z-index:0}
+#smoke-canvas{z-index:1;pointer-events:none}
+#particle-canvas{z-index:2;pointer-events:none}
+#raven-canvas{z-index:3;pointer-events:none}
+#curse-container{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden}
+#flash{position:fixed;inset:0;background:#ff0000;z-index:9990;opacity:0;pointer-events:none;transition:opacity .05s}
+#jumpscare{position:fixed;inset:0;background:#000000f7;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;cursor:pointer}
+#jumpscare.show{display:flex}
+
+.moon{position:fixed;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#cc2200,#880000,#2a0000);box-shadow:0 0 70px 25px #ff000044,0 0 140px 50px #88000022;z-index:4;animation:moonPulse 6s ease-in-out infinite;pointer-events:none}
+@keyframes moonPulse{0%,100%{box-shadow:0 0 70px 25px #ff000044,0 0 140px 50px #88000022}50%{box-shadow:0 0 100px 35px #ff000066,0 0 200px 70px #88000033}}
+
+.vignette{position:fixed;inset:0;pointer-events:none;z-index:8;background:radial-gradient(ellipse at center,transparent 40%,#3a000099 100%);animation:heartbeat 1.2s ease-in-out infinite}
+@keyframes heartbeat{0%,100%{opacity:.6}10%{opacity:.95}20%{opacity:.5}30%{opacity:.88}50%{opacity:.5}}
+
+.page-wrap{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;padding:30px 20px 80px;min-height:100vh}
+
+/* TITLE */
+.title-wrap{text-align:center;margin-bottom:6px;position:relative}
+.main-title{font-family:'UnifrakturMaguntia',cursive;font-size:clamp(2.6rem,9vw,6rem);color:var(--blood);text-shadow:0 0 20px #ff0000aa,0 0 60px #ff000055;animation:titlePulse 3s ease-in-out infinite;letter-spacing:4px}
+@keyframes titlePulse{0%,100%{text-shadow:0 0 20px #ff0000aa,0 0 60px #ff000055}50%{text-shadow:0 0 45px #ff0000ff,0 0 110px #ff000099,0 0 4px #fff3}}
+.blood-drip{display:flex;justify-content:center;gap:7px;margin-top:-4px}
+.drip{width:4px;background:var(--blood);border-radius:0 0 50% 50%;animation:drip 2.5s ease-in infinite}
+.drip:nth-child(1){height:20px;animation-delay:0s}.drip:nth-child(2){height:34px;animation-delay:.3s}.drip:nth-child(3){height:24px;animation-delay:.6s}.drip:nth-child(4){height:40px;animation-delay:.9s}.drip:nth-child(5){height:22px;animation-delay:1.2s}.drip:nth-child(6){height:30px;animation-delay:.15s}.drip:nth-child(7){height:18px;animation-delay:.75s}
+@keyframes drip{0%{transform:scaleY(0);opacity:1;transform-origin:top}70%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:.2}}
+.subtitle{font-family:'Creepster',cursive;font-size:clamp(.8rem,2.5vw,1.1rem);color:#aa3333;letter-spacing:6px;text-transform:uppercase;margin-top:12px;transition:opacity .5s;animation:flicker 5s infinite}
+@keyframes flicker{0%,88%,100%{opacity:1}90%{opacity:.04}93%{opacity:.8}96%{opacity:.04}98%{opacity:.9}}
+
+/* SCENE */
+.scene-wrap{position:relative;width:min(700px,96vw);margin:0 auto 12px}
+.stone-floor{width:100%;height:min(260px,38vw);background:radial-gradient(ellipse 80% 40% at 50% 100%,#1a0808 0%,transparent 70%),repeating-linear-gradient(90deg,transparent,transparent 48px,rgba(0,0,0,.2) 48px,rgba(0,0,0,.2) 50px),repeating-linear-gradient(0deg,transparent,transparent 48px,rgba(0,0,0,.2) 48px,rgba(0,0,0,.2) 50px),linear-gradient(180deg,#100008 0%,#1c0a0a 40%,#0d0005 100%);border-radius:10px;position:relative;overflow:hidden}
+
+.floor-pentagram{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(220px,34vw);height:min(220px,34vw)}
+.floor-pentagram svg{width:100%;height:100%;animation:pentaGlow 3s ease-in-out infinite;filter:drop-shadow(0 0 10px #ff0000) drop-shadow(0 0 25px #8b000088)}
+@keyframes pentaGlow{0%,100%{filter:drop-shadow(0 0 8px #ff0000aa) drop-shadow(0 0 18px #8b000055);opacity:.85}50%{filter:drop-shadow(0 0 22px #ff0000ff) drop-shadow(0 0 55px #ff000088);opacity:1}}
+.penta-outer{animation:rotatePenta 60s linear infinite;transform-origin:50% 50%}
+.penta-star{animation:rotatePenta 90s linear infinite reverse;transform-origin:50% 50%}
+@keyframes rotatePenta{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.floor-candle{position:absolute;display:flex;flex-direction:column;align-items:center;z-index:5}
+.fc-flame{width:10px;height:18px;background:linear-gradient(to top,#ff4500,#ffcc00,transparent);border-radius:50% 50% 30% 30%;animation:cFlicker .35s ease-in-out infinite alternate;box-shadow:0 0 12px 5px #ff880055;filter:blur(.5px)}
+@keyframes cFlicker{0%{transform:scaleX(1) scaleY(1);opacity:.9}100%{transform:scaleX(.6) scaleY(1.3);opacity:1}}
+.fc-body{width:10px;height:36px;background:linear-gradient(to right,#c8b89a,#e8d8c0,#c8b89a);border-radius:2px}
+.fc-base{width:14px;height:5px;background:#a08060;border-radius:2px}
+
+.floor-skull{position:absolute;font-size:clamp(20px,3.8vw,34px);filter:drop-shadow(0 0 6px #ff000066);animation:skullBob 4s ease-in-out infinite;user-select:none;pointer-events:none}
+@keyframes skullBob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+
+.spellbook-wrap{position:absolute;bottom:6px;right:5%;width:clamp(70px,12vw,110px);height:clamp(55px,10vw,88px);z-index:6}
+.spellbook{width:100%;height:100%;background:linear-gradient(135deg,#1a0500,#3a1000,#1a0500);border:1px solid #5a2000;border-radius:2px 8px 8px 2px;position:relative;box-shadow:0 0 20px #ff440033;overflow:visible}
+.spellbook-spine{position:absolute;left:0;top:0;bottom:0;width:12%;background:linear-gradient(to right,#2a0800,#5a1a00);border-right:1px solid #8b4000}
+.spellbook-page{position:absolute;inset:0;left:12%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:4px}
+.spellbook-rune{font-size:clamp(8px,1.5vw,12px);color:#cc8800;opacity:.8;animation:runeFlicker 2s infinite}
+@keyframes runeFlicker{0%,100%{opacity:.8}50%{opacity:1}70%{opacity:.3}}
+.spellbook-energy{position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:30px;height:30px;background:radial-gradient(circle,#cc44ff99,#8800ff44,transparent 70%);border-radius:50%;animation:bookEnergy 1.5s ease-in-out infinite;pointer-events:none}
+@keyframes bookEnergy{0%,100%{transform:translateX(-50%) scale(1);opacity:.7}50%{transform:translateX(-50%) scale(1.6) translateY(-8px);opacity:1}}
+
+.demon-shadow{position:absolute;right:0;bottom:0;width:clamp(55px,9vw,85px);height:clamp(85px,14vw,130px);z-index:7;pointer-events:none}
+.demon-body{width:100%;height:100%;background:linear-gradient(to bottom,transparent 0%,#000000cc 25%,#000000ee 100%);clip-path:polygon(35% 0%,65% 0%,80% 20%,90% 15%,100% 25%,85% 40%,90% 60%,80% 100%,20% 100%,10% 60%,15% 40%,0% 25%,10% 15%,20% 20%);animation:demonFloat 5s ease-in-out infinite;filter:blur(2px)}
+@keyframes demonFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.03)}}
+.demon-eyes{position:absolute;top:20%;left:50%;transform:translateX(-50%);display:flex;gap:10px}
+.demon-eye{width:8px;height:6px;background:radial-gradient(circle,#ff2200,transparent);border-radius:50%;animation:demonEye 1.2s ease-in-out infinite}
+@keyframes demonEye{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.6)}}
+
+.scene-rune{position:absolute;font-family:'Cinzel Decorative',serif;color:#8800cc;text-shadow:0 0 10px #cc00ff88;pointer-events:none;animation:runeFloat linear infinite;user-select:none}
+@keyframes runeFloat{0%{transform:translateY(0) rotate(0deg);opacity:0}10%{opacity:.8}90%{opacity:.8}100%{transform:translateY(-80px) rotate(360deg);opacity:0}}
+
+/* RITUAL CIRCLE */
+.ritual-area{position:relative;width:min(580px,92vw);height:min(580px,92vw);margin:0 auto 10px;display:flex;align-items:center;justify-content:center}
+.pentagram-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(320px,58vw);opacity:.06;animation:rotateSlow 45s linear infinite;color:#cc0000;pointer-events:none;user-select:none}
+.pentagram-bg2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(200px,38vw);opacity:.04;animation:rotateSlow 28s linear infinite reverse;color:#8800cc;pointer-events:none;user-select:none}
+@keyframes rotateSlow{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+.glow-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(520px,88vw);height:min(520px,88vw);border-radius:50%;border:1px solid #ff000033;animation:ringPulse 4s ease-in-out infinite;pointer-events:none}
+@keyframes ringPulse{0%,100%{box-shadow:0 0 20px 4px #ff000033,inset 0 0 20px #ff000022;border-color:#ff000033}50%{box-shadow:0 0 55px 18px #ff000066,inset 0 0 40px #ff000044;border-color:#ff000066}}
+.glow-ring-2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(400px,70vw);height:min(400px,70vw);border-radius:50%;border:1px solid #8800cc33;animation:ring2Pulse 5s ease-in-out infinite;pointer-events:none}
+@keyframes ring2Pulse{0%,100%{box-shadow:0 0 15px 3px #8800cc22}50%{box-shadow:0 0 40px 12px #8800cc55}}
+
+.fire-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(500px,86vw);height:min(500px,86vw);border-radius:50%;pointer-events:none}
+.flame{position:absolute;bottom:0;left:50%;border-radius:50% 50% 20% 20%;background:linear-gradient(to top,#ff4500,#ff8c00,#ffff0088,transparent);filter:blur(1.5px);animation:flameBurn .6s ease-in-out infinite alternate;pointer-events:none}
+@keyframes flameBurn{0%{transform:scaleX(1) scaleY(1) translateX(-50%) rotate(var(--lean,0deg));opacity:.9}100%{transform:scaleX(.6) scaleY(1.35) translateX(-50%) rotate(calc(var(--lean,0deg)+10deg));opacity:1}}
+
+.ring-candle{position:absolute;display:flex;flex-direction:column;align-items:center;z-index:5;pointer-events:none}
+.rc-flame{width:11px;height:20px;background:linear-gradient(to top,#ff4500,#ffcc00,transparent);border-radius:50% 50% 30% 30%;animation:cFlicker .4s ease-in-out infinite alternate;box-shadow:0 0 10px 4px #ff880066;filter:blur(.8px)}
+.rc-body{width:12px;height:44px;background:linear-gradient(to right,#c8b89a,#e8d8c0,#c8b89a);border-radius:2px;box-shadow:0 0 6px #ff880033}
+.rc-wax{width:7px;height:5px;background:#cc9977;border-radius:0 0 50% 50%}
+
+.bone-piece{position:absolute;font-size:clamp(16px,3vw,28px);opacity:.7;filter:drop-shadow(0 0 4px #ff000044);pointer-events:none;user-select:none;animation:boneSway 6s ease-in-out infinite}
+@keyframes boneSway{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(calc(var(--r) + 6deg)) translateY(-3px)}}
+
+.skull-wrap{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.skull{font-size:min(110px,22vw);filter:drop-shadow(0 0 18px #ff000099) drop-shadow(0 0 40px #ff000033);animation:skullFloat 3s ease-in-out infinite;user-select:none;transition:filter .2s}
+.skull:hover{filter:drop-shadow(0 0 35px #ff0000ff) drop-shadow(0 0 70px #ff0000aa)}
+@keyframes skullFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+.skull-eye-glow{position:absolute;width:18px;height:12px;background:radial-gradient(circle,#ff3300,transparent);border-radius:50%;animation:eyePulse 1.5s ease-in-out infinite;pointer-events:none;transition:transform .1s}
+.skull-eye-glow.left{top:28%;left:28%}.skull-eye-glow.right{top:28%;right:28%}
+@keyframes eyePulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.skull-label{font-family:'Creepster',cursive;font-size:.85rem;color:#882222;letter-spacing:3px;margin-top:6px;animation:flicker 3s infinite}
+
+/* OUIJA */
+.ouija-section{width:min(680px,94vw);margin:6px auto 24px}
+.section-title{text-align:center;font-size:clamp(.85rem,2.5vw,1.2rem);color:#aa3333;letter-spacing:5px;margin-bottom:14px;text-transform:uppercase}
+.ouija-board{background:linear-gradient(135deg,#1a0800,#2d1500,#1a0800);border:2px solid #5a2d00;border-radius:18px;padding:18px;box-shadow:0 0 40px #ff440022,inset 0 0 40px #0a000599;position:relative;overflow:hidden}
+.ouija-board::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(80,20,0,.07) 30px,rgba(80,20,0,.07) 32px);pointer-events:none}
+.ouija-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ouija-yes,.ouija-no{font-family:'UnifrakturMaguntia',cursive;font-size:clamp(1.5rem,4vw,2.5rem);color:var(--bone);text-shadow:0 0 10px #ff880055}
+.ouija-title-text{font-family:'UnifrakturMaguntia',cursive;font-size:clamp(1.8rem,5vw,3rem);color:var(--bone);text-shadow:0 0 15px #ff440066;text-align:center}
+.ouija-letters{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:8px 0}
+.ouija-letter{font-family:'Cinzel Decorative',serif;font-size:clamp(.7rem,1.8vw,.95rem);color:var(--bone);width:clamp(20px,3.8vw,28px);height:clamp(20px,3.8vw,28px);display:flex;align-items:center;justify-content:center;border-bottom:1px solid #5a2d0055;text-shadow:0 0 6px #ff880033;transition:color .2s,transform .2s}
+.ouija-letter.active{color:#ff4400;text-shadow:0 0 15px #ff4400,0 0 30px #ff440088;transform:scale(1.28)}
+.ouija-numbers{display:flex;justify-content:center;gap:8px;margin:6px 0}
+.ouija-num{font-family:'Cinzel Decorative',serif;font-size:clamp(.65rem,1.6vw,.85rem);color:var(--bone);opacity:.8}
+.ouija-footer{display:flex;justify-content:space-between;margin-top:8px}
+.ouija-footer-text{font-family:'Cinzel Decorative',serif;font-size:clamp(.5rem,1.4vw,.7rem);color:#a08060;letter-spacing:2px}
+.planchette{position:absolute;width:54px;height:68px;pointer-events:none;z-index:10;transition:left .85s cubic-bezier(.4,0,.2,1),top .85s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 10px #ff440099)}
+.planchette-body{width:54px;height:68px;background:radial-gradient(ellipse,#3a1e00,#1a0800);border:1.5px solid #8b5a00;border-radius:50% 50% 30% 30%/60% 60% 40% 40%;display:flex;align-items:center;justify-content:center}
+.planchette-hole{width:17px;height:17px;border:1.5px solid #8b5a00;border-radius:50%;box-shadow:0 0 8px #ff440066}
+
+/* CURSES */
+.floating-curse{position:absolute;font-family:'Creepster',cursive;font-size:clamp(.7rem,2vw,.95rem);color:#cc2222;text-shadow:0 0 8px #ff000066;pointer-events:all;cursor:pointer;animation:floatCurse linear infinite;white-space:nowrap;opacity:.85;z-index:50}
+.floating-curse:hover{color:#ff5555;text-shadow:0 0 16px #ff0000cc}
+@keyframes floatCurse{0%{transform:translateY(100vh) rotate(var(--rot));opacity:0}5%{opacity:.85}95%{opacity:.85}100%{transform:translateY(-12vh) rotate(calc(var(--rot)+15deg));opacity:0}}
+
+/* JUMPSCARE */
+.jumpscare-skull{font-size:min(180px,44vw);animation:jsShake .09s infinite;filter:drop-shadow(0 0 40px #ff0000)}
+@keyframes jsShake{0%{transform:translate(-3px,-3px) rotate(-2deg)}25%{transform:translate(3px,3px) rotate(2deg)}50%{transform:translate(-3px,3px) rotate(-1deg)}75%{transform:translate(3px,-3px) rotate(1deg)}100%{transform:translate(-3px,-3px) rotate(-2deg)}}
+.jumpscare-text{font-family:'UnifrakturMaguntia',cursive;font-size:clamp(1.6rem,7vw,4rem);color:#ff0000;text-shadow:0 0 30px #ff000099;text-align:center;padding:0 20px;margin-top:20px;animation:jsText .14s infinite alternate}
+@keyframes jsText{from{color:#ff0000;transform:scale(1)}to{color:#fff;transform:scale(1.05)}}
+.jumpscare-sub{font-family:'Creepster',cursive;font-size:clamp(.85rem,2.5vw,1.3rem);color:#cc4444;letter-spacing:4px;margin-top:10px;text-align:center;padding:0 20px}
+.jumpscare-close{margin-top:28px;font-family:'Cinzel Decorative',serif;font-size:.7rem;color:#663333;letter-spacing:3px}
+
+/* ADMIN */
+#admin-trigger{position:fixed;bottom:10px;right:10px;width:22px;height:22px;opacity:0;cursor:pointer;z-index:10000}
+#admin-panel{position:fixed;bottom:40px;right:10px;background:#0d0005ee;border:1px solid #5a0000;padding:16px;border-radius:8px;z-index:10000;display:none;flex-direction:column;gap:10px;min-width:230px;box-shadow:0 0 20px #ff000033}
+#admin-panel.open{display:flex}
+#admin-panel label{font-family:'Cinzel Decorative',serif;font-size:.6rem;color:#aa4444;letter-spacing:2px}
+#admin-panel input{background:#1a000a;border:1px solid #5a0000;color:var(--bone);padding:6px 10px;border-radius:4px;font-family:'Cinzel Decorative',serif;font-size:.75rem;width:100%;outline:none}
+#admin-panel button{background:var(--blood);border:none;color:var(--bone);padding:7px;font-family:'Cinzel Decorative',serif;font-size:.7rem;letter-spacing:2px;cursor:pointer;border-radius:4px}
+#admin-panel button:hover{background:#aa0000}
+.admin-title{font-family:'Creepster',cursive;color:#cc2222;font-size:.9rem;letter-spacing:3px;border-bottom:1px solid #5a0000;padding-bottom:6px}
+
+@media(max-width:480px){.ring-candle{display:none}}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="smoke-canvas"></canvas>
+<canvas id="particle-canvas"></canvas>
+<canvas id="raven-canvas"></canvas>
+
+<div class="vignette"></div>
+<div class="moon"></div>
+<div id="flash"></div>
+<div id="curse-container"></div>
+
+<div id="jumpscare" onclick="closeJumpscare()">
+  <div class="jumpscare-skull">💀</div>
+  <div class="jumpscare-text" id="jumpscare-text">IT HAS FOUND YOU</div>
+  <div class="jumpscare-sub" id="jumpscare-sub">THERE IS NO ESCAPE</div>
+  <div class="jumpscare-close">— click anywhere to flee —</div>
+</div>
+
+<div id="admin-trigger" onclick="toggleAdmin()"></div>
+<div id="admin-panel">
+  <div class="admin-title">⛧ ADMIN RITUAL ⛧</div>
+  <label>VICTIM'S NAME</label>
+  <input type="text" id="admin-name-input" placeholder="Enter name..." maxlength="20">
+  <button onclick="applyName()">⛧ BIND THE NAME ⛧</button>
+  <button onclick="toggleAdmin()" style="background:#220011">✕ Close</button>
+</div>
+
+<div class="page-wrap">
+
+  <div class="title-wrap">
+    <div class="main-title">The Dark Ritual</div>
+    <div class="blood-drip">
+      <div class="drip"></div><div class="drip"></div><div class="drip"></div>
+      <div class="drip"></div><div class="drip"></div><div class="drip"></div>
+      <div class="drip"></div>
+    </div>
+    <div class="subtitle" id="subtitle-text">The spirits have been summoned</div>
+  </div>
+
+  <!-- SCENE -->
+  <div class="scene-wrap">
+    <div class="stone-floor" id="stone-floor">
+      <div class="floor-pentagram">
+        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g class="penta-outer">
+            <circle cx="100" cy="100" r="95" stroke="#ff0000" stroke-width="1.5" stroke-opacity="0.7"/>
+            <circle cx="100" cy="100" r="78" stroke="#8b0000" stroke-width="0.7" stroke-opacity="0.5"/>
+          </g>
+          <g class="penta-star">
+            <polygon points="100,10 120,70 185,70 135,108 155,168 100,130 45,168 65,108 15,70 80,70"
+              stroke="#ff2200" stroke-width="1.5" fill="#ff000008" stroke-opacity="0.85"/>
+          </g>
+          <text x="100" y="110" text-anchor="middle" font-size="16" fill="#ff4400" opacity="0.5" font-family="serif">⛧</text>
+        </svg>
+      </div>
+
+      <!-- 7 floor candles around pentagram -->
+      <div class="floor-candle" style="top:5%;left:50%;transform:translateX(-50%)"><div class="fc-flame"></div><div class="fc-body"></div><div class="fc-base"></div></div>
+      <div class="floor-candle" style="top:28%;left:7%"><div class="fc-flame"></div><div class="fc-body"></div><div class="fc-base"></div></div>
+      <div class="floor-candle" style="top:28%;right:7%"><div class="fc-flame"></div><div class="fc-body"></div><div class="fc-base"></div></div>
+      <div class="floor-candle" style="bottom:6%;left:18%"><div class="fc-flame"></div><div class="fc-body"></div><div class="fc-base"></div></div>
+      <div class="floor-candle" style="bottom:6%;right:18%"><div class="fc-flame"></div><div class="fc-body"></div><div class="fc-base"></div></div>
+      <div class="floor-candle" style="top:12%;left:22%"><div class="fc-flame"></div><div class="fc-body" style="height:28px"></div><div class="fc-base"></div></div>
+      <div class="floor-candle" style="top:12%;right:22%"><div class="fc-flame"></div><div class="fc-body" style="height:32px"></div><div class="fc-base"></div></div>
+
+      <!-- Skulls & bones -->
+      <div class="floor-skull" style="bottom:3%;left:3%;--r:-15deg">💀</div>
+      <div class="floor-skull" style="bottom:3%;right:3%;--r:12deg;animation-delay:1.2s">💀</div>
+      <div class="floor-skull" style="top:4%;left:4%;--r:8deg;animation-delay:2s;font-size:clamp(13px,2.2vw,20px)">💀</div>
+      <div class="floor-skull" style="top:4%;right:4%;--r:-6deg;animation-delay:.7s;font-size:clamp(13px,2.2vw,20px)">💀</div>
+
+      <!-- Spell book -->
+      <div class="spellbook-wrap">
+        <div class="spellbook">
+          <div class="spellbook-spine"></div>
+          <div class="spellbook-energy"></div>
+          <div class="spellbook-page">
+            <div class="spellbook-rune">ᛉ ᚢ ᚦ ᚨ</div>
+            <div class="spellbook-rune">⛧ ☽ ✡ ☾ ⛧</div>
+            <div class="spellbook-rune">ᛗ ᚾ ᛁ ᚷ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demon shadow -->
+      <div class="demon-shadow">
+        <div class="demon-body"></div>
+        <div class="demon-eyes">
+          <div class="demon-eye"></div>
+          <div class="demon-eye" style="animation-delay:.35s"></div>
+        </div>
+      </div>
+
+      <!-- Floating scene runes -->
+      <div class="scene-rune" style="left:11%;top:45%;font-size:clamp(10px,2vw,16px);animation-duration:6s">ᛉ</div>
+      <div class="scene-rune" style="left:80%;top:52%;font-size:clamp(10px,2vw,15px);animation-duration:8s;animation-delay:1s">ᚢ</div>
+      <div class="scene-rune" style="left:34%;top:18%;font-size:clamp(10px,2vw,18px);animation-duration:7s;animation-delay:2s">⛧</div>
+      <div class="scene-rune" style="left:60%;top:14%;font-size:clamp(10px,2vw,14px);animation-duration:5s;animation-delay:.5s">ᚦ</div>
+      <div class="scene-rune" style="left:70%;top:38%;font-size:clamp(10px,2vw,20px);animation-duration:9s;animation-delay:3s">✡</div>
+      <div class="scene-rune" style="left:48%;top:70%;font-size:clamp(10px,2vw,14px);animation-duration:6.5s;animation-delay:1.5s">☽</div>
+    </div>
+  </div>
+
+  <!-- RITUAL CIRCLE -->
+  <div class="ritual-area" id="ritual-area">
+    <div class="pentagram-bg">⛧</div>
+    <div class="pentagram-bg2">✡</div>
+    <div class="glow-ring"></div>
+    <div class="glow-ring-2"></div>
+    <div class="fire-ring" id="fire-ring"></div>
+
+    <div class="bone-piece" style="top:5%;left:12%;--r:-20deg">🦴</div>
+    <div class="bone-piece" style="top:5%;right:12%;--r:15deg;animation-delay:1s">🦴</div>
+    <div class="bone-piece" style="bottom:5%;left:15%;--r:30deg;animation-delay:2s">🦴</div>
+    <div class="bone-piece" style="bottom:5%;right:15%;--r:-10deg;animation-delay:.5s">🦴</div>
+    <div class="bone-piece" style="top:50%;left:2%;--r:5deg;animation-delay:1.5s;font-size:clamp(12px,2.5vw,22px)">💀</div>
+    <div class="bone-piece" style="top:50%;right:2%;--r:-5deg;animation-delay:2.5s;font-size:clamp(12px,2.5vw,22px)">💀</div>
+
+    <div class="skull-wrap" onclick="skullClick()">
+      <div class="skull-eye-glow left" id="eye-left"></div>
+      <div class="skull-eye-glow right" id="eye-right"></div>
+      <div class="skull" id="skull">💀</div>
+      <div class="skull-label">CLICK IF YOU DARE</div>
+    </div>
+  </div>
+
+  <!-- OUIJA -->
+  <div class="ouija-section">
+    <div class="section-title">⛧ The Speaking Board ⛧</div>
+    <div class="ouija-board" id="ouija-board">
+      <div class="ouija-header">
+        <div class="ouija-yes">YES</div>
+        <div class="ouija-title-text">𝔒𝔲𝔦𝔧𝔞</div>
+        <div class="ouija-no">NO</div>
+      </div>
+      <div class="ouija-letters" id="ouija-letters"></div>
+      <div class="ouija-numbers" id="ouija-numbers"></div>
+      <div class="ouija-footer">
+        <div class="ouija-footer-text">GOOD BYE</div>
+        <div class="ouija-footer-text">☽ ☾</div>
+        <div class="ouija-footer-text">GOOD BYE</div>
+      </div>
+      <div class="planchette" id="planchette">
+        <div class="planchette-body"><div class="planchette-hole"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════ ADMIN: use Ctrl+Shift+A to set name ═══════════
+let VICTIM_NAME = "[NAME]";
+
+// ═══════════ AUDIO ENGINE ═══════════
+let audioCtx = null, audioStarted = false;
+function getCtx(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+
+function startDrone(){
+  const ctx=getCtx();
+  [55,55.5,82.4,110].forEach((f,i)=>{
+    const osc=ctx.createOscillator(),g=ctx.createGain(),flt=ctx.createBiquadFilter();
+    flt.type='lowpass';flt.frequency.value=280;
+    osc.type='sawtooth';osc.frequency.value=f;
+    osc.connect(flt);flt.connect(g);g.connect(ctx.destination);
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.025+i*0.004,ctx.currentTime+3);
+    osc.start();
+  });
+}
+
+function startWind(){
+  const ctx=getCtx();
+  (function burst(){
+    const sz=ctx.sampleRate*3,buf=ctx.createBuffer(1,sz,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1);
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const flt=ctx.createBiquadFilter();flt.type='bandpass';flt.frequency.value=380+Math.random()*280;flt.Q.value=0.5;
+    const g=ctx.createGain();const v=0.035+Math.random()*0.04;
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(v,ctx.currentTime+0.8);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+3);
+    src.connect(flt);flt.connect(g);g.connect(ctx.destination);
+    src.start();src.stop(ctx.currentTime+3.5);
+    setTimeout(burst,4000+Math.random()*7000);
+  })();
+}
+
+function startFire(){
+  const ctx=getCtx();
+  (function crackle(){
+    const sz=Math.floor(ctx.sampleRate*0.1),buf=ctx.createBuffer(1,sz,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*(1-i/sz);
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const flt=ctx.createBiquadFilter();flt.type='highpass';flt.frequency.value=900;
+    const g=ctx.createGain();g.gain.value=0.018+Math.random()*0.025;
+    src.connect(flt);flt.connect(g);g.connect(ctx.destination);
+    src.start();
+    setTimeout(crackle,80+Math.random()*260);
+  })();
+}
+
+function startHeartbeat(){
+  const ctx=getCtx();
+  (function beat(){
+    const hit=(delay,freq)=>{
+      const osc=ctx.createOscillator(),g=ctx.createGain();
+      osc.type='sine';osc.frequency.value=freq;
+      osc.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0,ctx.currentTime+delay);
+      g.gain.linearRampToValueAtTime(0.2,ctx.currentTime+delay+0.04);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+0.32);
+      osc.start(ctx.currentTime+delay);osc.stop(ctx.currentTime+delay+0.38);
+    };
+    hit(0,62);hit(0.22,55);
+    setTimeout(beat,880+Math.random()*320);
+  })();
+}
+
+let lastWhisper=0;
+function playWhisper(){
+  const now=Date.now();
+  if(now-lastWhisper<7000||Math.random()>0.22) return;
+  lastWhisper=now;
+  try{
+    const ctx=getCtx(),sz=Math.floor(ctx.sampleRate*1.4),buf=ctx.createBuffer(1,sz,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*Math.sin(Math.PI*i/sz)*0.5;
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const flt=ctx.createBiquadFilter();flt.type='bandpass';flt.frequency.value=1300;flt.Q.value=3.5;
+    const g=ctx.createGain();g.gain.value=0.07;
+    src.connect(flt);flt.connect(g);g.connect(ctx.destination);src.start();
+  }catch(e){}
+}
+
+function playOpenBoom(){
+  try{
+    const ctx=getCtx();
+    const osc=ctx.createOscillator(),g=ctx.createGain();
+    osc.type='sine';osc.frequency.setValueAtTime(85,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(18,ctx.currentTime+2);
+    g.gain.setValueAtTime(0.55,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2.2);
+    osc.connect(g);g.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+2.3);
+    const sz=Math.floor(ctx.sampleRate*0.5),buf=ctx.createBuffer(1,sz,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*(1-i/sz);
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const ng=ctx.createGain();ng.gain.value=0.28;
+    src.connect(ng);ng.connect(ctx.destination);src.start();
+  }catch(e){}
+}
+
+function playDemonGrowl(){
+  try{
+    const ctx=getCtx();
+    const osc=ctx.createOscillator(),g=ctx.createGain(),dist=ctx.createWaveShaper();
+    const curve=new Float32Array(256);
+    for(let i=0;i<256;i++){const x=i*2/256-1;curve[i]=(Math.PI+300)*x/(Math.PI+300*Math.abs(x));}
+    dist.curve=curve;
+    osc.type='sawtooth';osc.frequency.setValueAtTime(65,ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(28,ctx.currentTime+1.8);
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.12,ctx.currentTime+0.3);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+2);
+    osc.connect(dist);dist.connect(g);g.connect(ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+2.2);
+  }catch(e){}
+}
+
+function playJumpscare(){
+  try{
+    const ctx=getCtx();
+    [80,130,200,300,180].forEach((f,i)=>{
+      const osc=ctx.createOscillator(),g=ctx.createGain();
+      osc.type='sawtooth';osc.frequency.value=f;
+      osc.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(.48,ctx.currentTime+i*.05);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.38+i*.05);
+      osc.start(ctx.currentTime+i*.05);osc.stop(ctx.currentTime+.45+i*.05);
+    });
+    const sz=Math.floor(ctx.sampleRate*0.6),buf=ctx.createBuffer(1,sz,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*(1-i/sz);
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const ng=ctx.createGain();ng.gain.value=0.45;
+    src.connect(ng);ng.connect(ctx.destination);src.start();
+  }catch(e){}
+}
+
+function playCurseClick(){
+  try{
+    [440,330,220,165].forEach((f,i)=>setTimeout(()=>{
+      const ctx=getCtx(),osc=ctx.createOscillator(),g=ctx.createGain();
+      osc.type='sawtooth';osc.frequency.value=f;
+      osc.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(.2,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.28);
+      osc.start();osc.stop(ctx.currentTime+.3);
+    },i*60));
+  }catch(e){}
+}
+
+function playSkullClick(){
+  try{
+    const ctx=getCtx(),osc=ctx.createOscillator(),g=ctx.createGain();
+    osc.type='square';osc.frequency.setValueAtTime(100,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(38,ctx.currentTime+.6);
+    g.gain.setValueAtTime(.32,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.7);
+    osc.connect(g);g.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.75);
+    setTimeout(playDemonGrowl,500);
+  }catch(e){}
+}
+
+function startAudio(){
+  if(audioStarted) return; audioStarted=true;
+  playOpenBoom();
+  setTimeout(()=>{ startDrone(); startWind(); startFire(); startHeartbeat(); },1000);
+  setInterval(()=>{ if(Math.random()<.45) playDemonGrowl(); },32000);
+}
+
+// ═══════════ CANVASES ═══════════
+const bgC=document.getElementById('bg-canvas'),bgX=bgC.getContext('2d');
+const smC=document.getElementById('smoke-canvas'),smX=smC.getContext('2d');
+const pC=document.getElementById('particle-canvas'),pX=pC.getContext('2d');
+const rC=document.getElementById('raven-canvas'),rX=rC.getContext('2d');
+
+function resizeAll(){
+  [bgC,smC,pC,rC].forEach(c=>{c.width=window.innerWidth;c.height=window.innerHeight;});
+  drawBG();
+}
+
+function drawBG(){
+  const g=bgX.createRadialGradient(bgC.width/2,bgC.height/2,0,bgC.width/2,bgC.height/2,bgC.width*.85);
+  g.addColorStop(0,'#0f0008');g.addColorStop(.5,'#070010');g.addColorStop(1,'#000000');
+  bgX.fillStyle=g;bgX.fillRect(0,0,bgC.width,bgC.height);
+  bgX.strokeStyle='rgba(28,0,12,.25)';bgX.lineWidth=1;
+  for(let x=0;x<bgC.width;x+=60){bgX.beginPath();bgX.moveTo(x,0);bgX.lineTo(x,bgC.height);bgX.stroke();}
+  for(let y=0;y<bgC.height;y+=60){bgX.beginPath();bgX.moveTo(0,y);bgX.lineTo(bgC.width,y);bgX.stroke();}
+}
+
+// SMOKE
+let smokeP=[];
+function spawnSmoke(){
+  smokeP.push({x:Math.random()*smC.width,y:smC.height,vx:(Math.random()-.5)*.4,vy:-(0.3+Math.random()*.65),r:18+Math.random()*55,alpha:0,maxA:0.04+Math.random()*.055,growing:true,col:Math.random()>.65?'90,0,25':'14,0,22'});
+}
+function animateSmoke(){
+  smX.clearRect(0,0,smC.width,smC.height);
+  if(Math.random()<.14) spawnSmoke();
+  smokeP=smokeP.filter(p=>p.alpha>0||p.growing);
+  for(const p of smokeP){
+    p.x+=p.vx;p.y+=p.vy;p.r+=.28;
+    if(p.growing){p.alpha+=.0018;if(p.alpha>=p.maxA)p.growing=false;}
+    else p.alpha-=.00045;
+    const g=smX.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+    g.addColorStop(0,`rgba(${p.col},${p.alpha})`);g.addColorStop(1,`rgba(${p.col},0)`);
+    smX.beginPath();smX.arc(p.x,p.y,p.r,0,Math.PI*2);smX.fillStyle=g;smX.fill();
+  }
+  requestAnimationFrame(animateSmoke);
+}
+
+// PARTICLES (ash, sparks)
+let parts=[];
+function spawnParticle(){
+  parts.push({x:Math.random()*pC.width,y:pC.height+4,sz:.5+Math.random()*2.5,vy:.3+Math.random()*.7,vx:(Math.random()-.5)*.5,op:.12+Math.random()*.5,col:Math.random()>.55?'#ff4400':Math.random()>.5?'#8b0000':'#6600cc'});
+}
+function animateParticles(){
+  pX.clearRect(0,0,pC.width,pC.height);
+  if(Math.random()<.35) spawnParticle();
+  parts=parts.filter(p=>p.y>0&&p.op>0);
+  for(const p of parts){
+    p.y-=p.vy;p.x+=p.vx;p.op-=.0008;
+    pX.beginPath();pX.arc(p.x,p.y,p.sz,0,Math.PI*2);
+    pX.fillStyle=p.col+Math.floor(p.op*255).toString(16).padStart(2,'0');
+    pX.fill();
+  }
+  requestAnimationFrame(animateParticles);
+}
+
+// RAVENS
+let ravens=[];
+function spawnRaven(){
+  ravens.push({x:-60,y:25+Math.random()*(rC.height*.38),spd:1.2+Math.random()*1.8,wing:0,sz:13+Math.random()*17,op:.55+Math.random()*.45});
+}
+function drawRaven(r){
+  rX.save();rX.translate(r.x,r.y);rX.globalAlpha=r.op;
+  rX.fillStyle='#050003';
+  rX.beginPath();rX.ellipse(0,0,r.sz*.6,r.sz*.28,0,0,Math.PI*2);rX.fill();
+  rX.beginPath();rX.arc(r.sz*.5,-r.sz*.14,r.sz*.2,0,Math.PI*2);rX.fill();
+  rX.fillStyle='#ff0000';rX.beginPath();rX.arc(r.sz*.6,-r.sz*.17,r.sz*.055,0,Math.PI*2);rX.fill();
+  const wA=Math.sin(r.wing)*.65;
+  rX.fillStyle='#050003';
+  rX.beginPath();rX.moveTo(0,0);rX.quadraticCurveTo(-r.sz*.5,-r.sz*(1+wA),-r.sz*1.1,r.sz*.18);rX.quadraticCurveTo(-r.sz*.28,r.sz*.08,0,0);rX.fill();
+  rX.beginPath();rX.moveTo(0,0);rX.quadraticCurveTo(-r.sz*.18,-r.sz*(.55+wA*.5),-r.sz*.65,r.sz*.08);rX.quadraticCurveTo(-r.sz*.08,r.sz*.04,0,0);rX.fill();
+  rX.restore();
+}
+function animateRavens(){
+  rX.clearRect(0,0,rC.width,rC.height);
+  if(Math.random()<.004) spawnRaven();
+  ravens=ravens.filter(r=>r.x<rC.width+80);
+  for(const r of ravens){r.x+=r.spd;r.y+=Math.sin(r.x*.018)*.5;r.wing+=.18;drawRaven(r);}
+  requestAnimationFrame(animateRavens);
+}
+
+// FIRE RING
+function buildFireRing(){
+  const ring=document.getElementById('fire-ring');ring.innerHTML='';
+  const sz=Math.min(window.innerWidth*.86,500);
+  for(let i=0;i<40;i++){
+    const angle=(i/40)*360,rad=angle*Math.PI/180,r=sz/2;
+    const x=r+r*Math.sin(rad),y=r-r*Math.cos(rad);
+    const h=22+Math.random()*32,w=7+Math.random()*9,lean=(Math.random()-.5)*18;
+    const f=document.createElement('div');f.className='flame';
+    f.style.cssText=`height:${h}px;width:${w}px;left:${x}px;top:${y-h}px;transform:translateX(-50%) rotate(${angle}deg);animation-duration:${.35+Math.random()*.35}s;animation-delay:${Math.random()*.5}s;--lean:${lean}deg;position:absolute;`;
+    ring.appendChild(f);
+  }
+}
+
+// RING CANDLES
+function buildRingCandles(){
+  const area=document.getElementById('ritual-area');
+  [{top:'2%',left:'50%',transform:'translateX(-50%)'},{top:'50%',left:'2%',transform:'translateY(-50%)'},{top:'50%',right:'2%',transform:'translateY(-50%)'},{bottom:'2%',left:'50%',transform:'translateX(-50%)'},{top:'16%',left:'13%'},{top:'16%',right:'13%'},{bottom:'16%',left:'13%'},{bottom:'16%',right:'13%'}].forEach(pos=>{
+    const c=document.createElement('div');c.className='ring-candle';
+    Object.assign(c.style,pos,{position:'absolute',zIndex:'5'});
+    c.innerHTML=`<div class="rc-flame"></div><div class="rc-body"></div><div class="rc-wax"></div>`;
+    area.appendChild(c);
+  });
+}
+
+// OUIJA
+function buildOuija(){
+  const ld=document.getElementById('ouija-letters'),nd=document.getElementById('ouija-numbers');
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>{const s=document.createElement('span');s.className='ouija-letter';s.textContent=l;s.id='ol-'+l;ld.appendChild(s);});
+  '0123456789'.split('').forEach(n=>{const s=document.createElement('span');s.className='ouija-num';s.textContent=n;nd.appendChild(s);});
+}
+
+let plTimer=null;
+function movePlanchette(letter){
+  const board=document.getElementById('ouija-board'),pl=document.getElementById('planchette');
+  const el=document.getElementById('ol-'+letter.toUpperCase());if(!el)return;
+  const br=board.getBoundingClientRect(),er=el.getBoundingClientRect();
+  pl.style.left=(er.left-br.left+er.width/2-27)+'px';
+  pl.style.top=(er.top-br.top+er.height/2-34)+'px';
+  pl.style.position='absolute';
+  document.querySelectorAll('.ouija-letter').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  try{const ctx=getCtx(),osc=ctx.createOscillator(),g=ctx.createGain();osc.type='sine';osc.frequency.value=200+letter.charCodeAt(0)*1.4;g.gain.setValueAtTime(.07,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.2);osc.connect(g);g.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.22);}catch(e){}
+  setTimeout(()=>el.classList.remove('active'),750);
+}
+
+function spellName(){
+  if(plTimer) clearTimeout(plTimer);
+  const name=VICTIM_NAME.toUpperCase().replace(/[^A-Z]/g,'');
+  if(!name) return;
+  let i=0;
+  (function next(){
+    if(i>=name.length){plTimer=setTimeout(spellName,8000);return;}
+    movePlanchette(name[i]);i++;plTimer=setTimeout(next,950);
+  })();
+}
+
+// CURSES
+const LATIN=["Maledictus esto in aeternum","Spiritus noctis te vocat","Mors tua vita mea","In tenebris ambulabis","Sanguis tuum pro nobis","Fatum tuum scriptum est","Nemo te salvare potest","Oculi mortis te vident","Anima tua condemnata est","Per ignem et sanguinem"];
+const DEMONIC=["𝖁𝖊𝖓𝖎 𝖛𝖎𝖉𝖎 𝖒𝖔𝖗𝖙𝖚𝖚𝖘","⛧ ᏂᎻᎾᏁ ᎳᏗᎧᏥ ⛧","𝔻𝔼𝕄𝕆ℕ𝕀𝕌𝕄 𝕀ℕ𝕍𝕆ℂ𝔸𝕋𝕌𝕄","ꋪꋬꌗꉓꉠ꒐ꋫꌃ꒐","⸸ ᎷᎧᏒᏖᎥᏕ ⸸","𝕍𝕆𝕀𝔻 𝔻𝔼𝕍𝕆𝕌ℝ𝕊","ᛉᚢᚦᚨ ᛗᚾᛁᚷ ᛚᚨᚷᚢᛉ","☠ ℕ𝕆 𝔼𝕊ℂ𝔸𝕡𝔼 ☠"];
+function getPersonal(){return["'s time is nearly over","We have watched you for years","You were never supposed to find this","... we know your name","The shadows in your room are not yours","Something followed you home tonight","You cannot unsee what has been shown","Your reflection lied to you today","... can you feel us yet?","It knows where you sleep"].map((c,i)=>[0,3,8].includes(i)?VICTIM_NAME+c:c);}
+function getCurses(){return[...LATIN,...getPersonal(),...DEMONIC];}
+
+const JS_TEMPLATES=[
+  {t:"WE KNOW YOU, {N}",s:"YOUR SOUL IS ALREADY OURS"},
+  {t:"IT FOUND YOU",s:"THERE IS NOWHERE LEFT TO RUN"},
+  {t:"{N} IS MARKED",s:"THE RITUAL IS COMPLETE"},
+  {t:"LOOK BEHIND YOU",s:"TOO LATE... IT IS ALREADY THERE"},
+  {t:"THE CURSE IS SEALED",s:"YOUR FATE WAS WRITTEN IN BLOOD"},
+  {t:"YOU SHOULD NOT HAVE CLICKED",s:"NOW IT KNOWS YOUR FACE"},
+  {t:"3... 2... 1...",s:"YOUR TIME EXPIRES AT MIDNIGHT"},
+  {t:"GOOD. YOU OPENED YOUR EYES.",s:"NOW IT CAN SEE THROUGH THEM"},
+  {t:"⛧ MORTEM INVOCO ⛧",s:"THE SPIRIT ACCEPTS YOUR OFFERING"},
+  {t:"THE SPIRITS CALL FOR {N}",s:"THEY WILL NOT STOP UNTIL THEY HAVE YOU"},
+];
+function getJumpscare(){const j=JS_TEMPLATES[Math.floor(Math.random()*JS_TEMPLATES.length)];return{text:j.t.replace('{N}',VICTIM_NAME),sub:j.s};}
+
+function spawnCurse(){
+  const cont=document.getElementById('curse-container');
+  const text=getCurses()[Math.floor(Math.random()*getCurses().length)];
+  const el=document.createElement('div');el.className='floating-curse';el.textContent=text;
+  const x=2+Math.random()*88,dur=13+Math.random()*14,rot=(Math.random()-.5)*22;
+  el.style.left=x+'vw';el.style.setProperty('--rot',rot+'deg');el.style.animationDuration=dur+'s';
+  el.style.fontSize=(.66+Math.random()*.55)+'rem';el.style.opacity=.55+Math.random()*.45;
+  el.addEventListener('click',()=>triggerJumpscare(el));
+  cont.appendChild(el);setTimeout(()=>el.remove(),dur*1000+500);
+}
+function startCurses(){spawnCurse();setTimeout(startCurses,1500+Math.random()*2200);}
+
+// JUMPSCARE
+let jumpActive=false;
+function triggerJumpscare(src){
+  if(jumpActive)return;jumpActive=true;
+  playCurseClick();
+  const fl=document.getElementById('flash');fl.style.opacity='1';setTimeout(()=>fl.style.opacity='0',100);
+  setTimeout(()=>{
+    const j=getJumpscare();
+    document.getElementById('jumpscare-text').textContent=j.text;
+    document.getElementById('jumpscare-sub').textContent=j.sub;
+    document.getElementById('jumpscare').classList.add('show');
+    playJumpscare();
+    if(src)src.remove();
+  },120);
+}
+function closeJumpscare(){document.getElementById('jumpscare').classList.remove('show');setTimeout(()=>jumpActive=false,600);}
+
+function skullClick(){
+  playSkullClick();
+  const s=document.getElementById('skull');
+  s.style.transform='scale(1.38) rotate(18deg)';s.style.filter='drop-shadow(0 0 65px #ff0000) brightness(2.3)';
+  setTimeout(()=>{s.style.transform='';s.style.filter='';},350);
+  triggerJumpscare(null);
+}
+
+// SUBTITLE
+let subtitles=["The spirits have been summoned",VICTIM_NAME+"... they are watching","Do not look away from the screen","Something is in the room with you","The ritual has already begun",VICTIM_NAME+"... run while you can","It knows you are here","The candles burn for you","The dead have spoken your name"];
+let subIdx=0;
+function rotateSubtitle(){
+  const el=document.getElementById('subtitle-text');el.style.opacity='0';
+  setTimeout(()=>{
+    subIdx=(subIdx+1)%subtitles.length;
+    el.textContent=subtitles[subIdx];
+    el.style.opacity='1';
+  },550);
+}
+
+// MOUSE — whisper + eye tracking
+document.addEventListener('mousemove',e=>{
+  playWhisper();
+  const sk=document.getElementById('skull');if(!sk)return;
+  const sr=sk.getBoundingClientRect();
+  const dx=(e.clientX-(sr.left+sr.width/2))/window.innerWidth*6;
+  const dy=(e.clientY-(sr.top+sr.height/2))/window.innerHeight*4;
+  document.getElementById('eye-left').style.transform=`translate(${dx}px,${dy}px)`;
+  document.getElementById('eye-right').style.transform=`translate(${dx}px,${dy}px)`;
+});
+
+// ADMIN
+function toggleAdmin(){document.getElementById('admin-panel').classList.toggle('open');}
+function applyName(){
+  const v=document.getElementById('admin-name-input').value.trim();
+  if(v){
+    VICTIM_NAME=v;
+    subtitles[1]=VICTIM_NAME+"... they are watching";
+    subtitles[5]=VICTIM_NAME+"... run while you can";
+    document.getElementById('admin-name-input').value='';
+    toggleAdmin();
+    if(plTimer)clearTimeout(plTimer);
+    setTimeout(spellName,1500);
+  }
+}
+document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key==='A')toggleAdmin();});
+
+// INIT
+window.addEventListener('load',()=>{
+  resizeAll();
+  animateSmoke();animateParticles();animateRavens();
+  buildFireRing();buildRingCandles();buildOuija();
+  setTimeout(spellName,2500);
+  startCurses();
+  setInterval(rotateSubtitle,5000);
+  const once=()=>startAudio();
+  document.addEventListener('click',once,{once:true});
+  document.addEventListener('touchstart',once,{once:true});
+});
+window.addEventListener('resize',()=>{resizeAll();buildFireRing();});
+</script>
+</body>
+</html>
